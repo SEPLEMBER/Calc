@@ -5,32 +5,44 @@ import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 import static android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
 import static org.solovyev.android.calculator.App.cast;
 import static org.solovyev.android.calculator.Preferences.Gui.keepScreenOn;
+
 import android.content.SharedPreferences;
+import android.graphics.Insets;
 import android.graphics.Typeface;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.WindowInsets;
 import android.widget.TextView;
+
+import androidx.activity.EdgeToEdge;
+import androidx.activity.SystemBarStyle;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.WindowInsetsCompat;
+
 import com.google.android.material.appbar.AppBarLayout;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import dagger.Lazy;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import javax.inject.Inject;
+
 import org.solovyev.android.Check;
 import org.solovyev.android.calculator.language.Language;
 import org.solovyev.android.calculator.language.Languages;
 import org.solovyev.android.calculator.view.Tabs;
 import org.solovyev.android.views.dragbutton.DirectionDragImageButton;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+
+import dagger.Lazy;
 
 public abstract class BaseActivity extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
@@ -141,6 +153,16 @@ public abstract class BaseActivity extends AppCompatActivity implements SharedPr
         View contentView = findViewById(android.R.id.content);
         mainView = contentView.findViewById(R.id.main);
         toolbar = contentView.findViewById(R.id.toolbar);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            mainView.setOnApplyWindowInsetsListener((v, windowInsets) -> {
+                final Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+                final ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+                lp.topMargin = insets.top;
+                lp.bottomMargin = insets.bottom;
+                v.setLayoutParams(lp);
+                return WindowInsets.CONSUMED;
+            });
+        }
         fab = contentView.findViewById(R.id.fab);
         bindViews(contentView);
         // title must be updated as if a non-system language is used the value from AndroidManifest
@@ -155,7 +177,8 @@ public abstract class BaseActivity extends AppCompatActivity implements SharedPr
         tabs.onCreate();
     }
 
-    protected void bindViews(@Nonnull View contentView) {}
+    protected void bindViews(@Nonnull View contentView) {
+    }
 
     private void initToolbar() {
         if (toolbar == null) {
@@ -183,6 +206,11 @@ public abstract class BaseActivity extends AppCompatActivity implements SharedPr
 
         theme = Preferences.Gui.getTheme(preferences);
         setTheme(theme.getThemeFor(this));
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            final int scrimColor = theme.getScrimColorFor(this);
+            EdgeToEdge.enable(this, theme.light ? SystemBarStyle.light(scrimColor, scrimColor) : SystemBarStyle.dark(scrimColor));
+        }
 
         mode = Preferences.Gui.getMode(preferences);
         language = languages.getCurrent();
