@@ -1,0 +1,46 @@
+name: Android CI
+
+on: 
+  push:
+    branches: [ "main", "master" ] # Укажите ваши основные ветки
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v4
+      with:
+        submodules: true # КРИТИЧЕСКИ ВАЖНО: подтягивает :otto, :jscl, :measure и другие модули
+        fetch-depth: 0
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        # Используем JDK 17, так как в build.gradle явно задан java toolchain 17
+        java-version: '17'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3 # Включает кэширование для ускорения последующих сборок
+
+    - name: Build Release APK
+      # Собираем релиз. Благодаря splits, будет создан только arm64-v8a вариант
+      run: ./gradlew assembleRelease --no-daemon
+
+    - name: List generated APKs and sizes
+      run: |
+        echo "📦 Сгенерированные APK:"
+        ls -lh app/build/outputs/apk/release/*.apk || echo "APK не найдены"
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: calculator-release-arm64-v8a
+        # Загружаем только конкретный файл с arm64-v8a в имени
+        path: app/build/outputs/apk/release/*arm64-v8a.apk
+        retention-days: 7
+        if-no-files-found: error
