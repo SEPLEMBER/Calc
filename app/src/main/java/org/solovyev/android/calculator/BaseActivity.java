@@ -3,6 +3,7 @@ package org.solovyev.android.calculator;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
 import static android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
 import static android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON;
+import static android.view.WindowManager.LayoutParams.FLAG_SECURE; // <-- ДОБАВЛЕНО: импорт флага безопасности
 import static org.solovyev.android.calculator.App.cast;
 import static org.solovyev.android.calculator.Preferences.Gui.keepScreenOn;
 
@@ -135,6 +136,9 @@ public abstract class BaseActivity extends AppCompatActivity implements SharedPr
     protected void onCreate(Bundle savedInstanceState) {
         onPreCreate();
         super.onCreate(savedInstanceState);
+
+        // <-- ДОБАВЛЕНО: Защита от скриншотов и скрытие содержимого в меню недавних приложений
+        getWindow().addFlags(FLAG_SECURE);
 
         inject(cast(getApplication()).getComponent());
 
