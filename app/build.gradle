@@ -27,6 +27,7 @@ apply plugin: 'kotlin-kapt'
 
 android {
     compileSdk versions.sdk.compile
+    
     defaultConfig {
         applicationId "org.solovyev.android.calculator"
         minSdkVersion versions.sdk.min
@@ -35,14 +36,29 @@ android {
         versionName '2.3.6'
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
+
+    // --- ДОБАВЛЕНО: Сборка только под arm64-v8a ---
+    splits {
+        abi {
+            enable true
+            reset()
+            include "arm64-v8a" // Можно добавить "armeabi-v7a" через запятую, если нужен 32-бит
+            universalApk false  // Отключаем создание "жирного" универсального APK
+        }
+    }
+    // ------------------------------------------------
+
     buildFeatures {
         dataBinding true
         viewBinding true
     }
+
     buildTypes {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard.cfg'
+            // --- ДОБАВЛЕНО: Подпись дебажным ключом для CI (аналог "неподписанного" APK) ---
+            signingConfig signingConfigs.debug
         }
         debug {
             minifyEnabled false
@@ -52,12 +68,28 @@ android {
             multiDexEnabled true
         }
     }
+
     namespace 'org.solovyev.android.calculator'
+
+    // --- ДОБАВЛЕНО: Переименование выходного APK для удобства ---
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def abi = output.getFilter(com.android.build.OutputFile.ABI)
+            if (abi != null) {
+                outputFileName = "calculator-${variant.versionName}-${abi}.apk"
+            } else {
+                outputFileName = "calculator-${variant.versionName}.apk"
+            }
+        }
+    }
+    // -------------------------------------------------------------
+
     lint {
         abortOnError false
         disable 'ContentDescription', 'IconLauncherShape'
         warning 'MissingTranslation'
     }
+    
     testOptions {
         unitTests {
             includeAndroidResources = true
@@ -110,11 +142,12 @@ dependencies {
     androidTestImplementation 'androidx.annotation:annotation:1.8.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test:rules:1.6.1'
-    androidTestImplementation'org.hamcrest:hamcrest-library:1.3'
+    androidTestImplementation 'org.hamcrest:hamcrest-library:1.3'
     androidTestImplementation('androidx.test.espresso:espresso-core:3.1.0', {
         // use version of jsr305 provided by Checkout
         exclude group: 'com.google.code.findbugs', module: 'jsr305'
-    })}
+    })
+}
 
 tasks.withType(Test) {
     scanForTestClasses = false
@@ -128,6 +161,7 @@ tasks.withType(Test) {
     exclude "**/*AngleUnitsButtonTest*"
     exclude "**/*NumeralBasesButtonTest*"
 }
+
 /*
 
 task androidJavadocs(type: Javadoc) {
